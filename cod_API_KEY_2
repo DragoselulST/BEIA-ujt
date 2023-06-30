@@ -1,0 +1,55 @@
+import time
+import paho.mqtt.publish as publish
+import json
+import http.client
+
+# Setările brokerului MQTT
+broker = "mqtt.beia-telemetrie.ro"
+port = 1883
+topic = "training/device/Dragos-Stoica"
+topic_2 = "training/device/Dragos-Stoica/processed"
+
+# Funcția pentru obținerea unui număr de la API
+def get_number_from_api():
+    try:
+        # Se creează o conexiune la serverul API-ului
+        conn = http.client.HTTPSConnection("https://api.sinay.ai/vessel/api/v1")
+        
+        # Se efectuează cererea GET la calea specificată de API
+        conn.request("GET", "/endpoint")
+        
+        # Se obține răspunsul de la server
+        response = conn.getresponse()
+        
+        # Se citește răspunsul ca un șir de caractere
+        data = response.read().decode("utf-8")
+        
+        # Se închide conexiunea
+        conn.close()
+        
+        # Se parsează răspunsul JSON
+        decoded_data = json.loads(data)
+        
+        # Se extrage numărul din răspunsul API-ului
+        return decoded_data["number"]
+    
+    except Exception as e:
+        # În caz de eroare, se afișează un mesaj și se returnează un număr oarecare
+        print("API request failed:", e)
+        return 0
+
+# Publicarea datelor în mod continuu
+while True:
+    # Obținerea unui număr de la API
+    number = get_number_from_api()
+    print(f"{number} km/h")
+
+    payload_dict = {
+        "number": number
+    }
+
+    # Publicarea numărului în topic
+    publish.single(topic, hostname=broker, port=port, payload=json.dumps(payload_dict))
+
+    # Așteptare pentru o perioadă de timp
+    time.sleep(3)
