@@ -1,0 +1,43 @@
+import time
+import paho.mqtt.publish as publish
+import json
+from urllib import requests
+
+# Setările brokerului MQTT
+broker = "mqtt.beia-telemetrie.ro"
+port = 1883
+topic = "training/device/Dragos-Stoica"
+topic_2 = "training/device/Dragos-Stoica/processed"
+
+# Funcția pentru obținerea unui număr de la API
+def get_number_from_api():
+    # Efectuăm o cerere GET la URL-ul API-ului
+    response = requests.get("https://services.marinetraffic.com/api/exportvesseltrack/v:3")
+    
+    # Verificăm dacă cererea a fost cu succes
+    if response.status_code == 200:
+        # Parsăm răspunsul JSON
+        data = response.json()
+        
+        # Întoarcem numărul din răspunsul API-ului
+        return data["number"]
+    else:
+        # În caz de eroare, putem afișa un mesaj și returna un număr oarecare
+        print("API request failed")
+        return 0
+
+# Publicarea datelor în mod continuu
+while True:
+    # Obținem un număr de la API
+    number = get_number_from_api()
+    print(f"{number} km/h")
+
+    payload_dict = {
+        "number" : number
+    }
+
+    # Publicarea numărului în topic
+    publish.single(topic, hostname=broker, port=port, payload=json.dumps(payload_dict))
+
+    # Așteptare pentru o perioadă de timp
+    time.sleep(3)
